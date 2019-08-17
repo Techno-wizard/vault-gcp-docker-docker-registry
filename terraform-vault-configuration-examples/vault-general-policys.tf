@@ -6,6 +6,12 @@ resource "vault_policy" "docker-read-from-vault" {
 	policy = "${file("./general-docker-read-from-vault.hcl")}"
 }
 
+# allowed to read docker auth from vault key vaule store (kv)
+resource "vault_policy" "read-docker-auth-from-vault" {
+	name = "read-docker-auth-from-vault"
+	policy = "${file("./read-apps-docker-from-vault.hcl")}"
+}
+
 # Generte GCP Docker service account key or oauth token
 # allowed to push or pull from GCP Repo
 resource "vault_policy" "create-docker-repo-push-pull-access" {

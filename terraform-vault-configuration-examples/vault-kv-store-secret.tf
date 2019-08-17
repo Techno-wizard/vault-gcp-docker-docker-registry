@@ -1,6 +1,9 @@
 resource "vault_mount" "kv_secret" {
 	path        				= "secret"
 	type        				= "kv"
+	options						= {
+								version	= 1
+								}
 	description 				= "Key Value store mount"
 	# Default lease duration for tokens and secrets in seconds
 	default_lease_ttl_seconds	= 3600
