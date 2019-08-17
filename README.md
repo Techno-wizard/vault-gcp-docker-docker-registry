@@ -14,3 +14,8 @@ vault read -field=role_id auth/approle/role/pull_gcp_repo/role-id > /tmp/test-va
 
 vault write -f -field=secret_id auth/approle/role/pull_gcp_repo/secret-id > /tmp/test-vault-secret-id
 
+
+Using 
+
+https://github.com/morningconsult/docker-credential-vault-login
+
