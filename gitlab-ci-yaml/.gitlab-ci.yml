@@ -1,0 +1,73 @@
+# Push an iamge to a private gcp docker image from gitlab
+# ${DEVOPS_ROLE_ID} and ${DEVOPS_SECRET_ID} provider by gitlab CI varables
+
+
+image: docker:19.03.0
+
+services:
+   - docker:19.03.0-dind
+
+stages:
+   - setup
+   - build
+   - test
+   - push
+
+variables:
+   VAULT_ADDR: https://<URL of VAULT SERVER:8200
+   DOCKER_DRIVER: overlay2
+  # Create the certificates inside this directory for both the server
+  # and client. The certificates used by the client will be created in
+  # /certs/client so we only need to share this directory with the
+  # volume mount in `config.toml`. 
+  # disable TLS. You can do this by setting the environment variable DOCKER_TLS_CERTDIR to an empty value.
+   DOCKER_TLS_CERTDIR: ""
+   GCP_REPO_REGON: eu.gcr.io
+   GCP_REPO_PROJECT: docker-repo-project-name
+   IMAGE_NAME: image-name
+   IAMAGE_FULL_NAME: $GCP_REPO_REGON/$GCP_REPO_PROJECT/$IMAGE_NAME:$CI_COMMIT_REF_NAME
+
+         
+build:terraform-make:
+   tags:
+   - build-image
+      
+   artifacts:
+      paths:
+      - docker-images
+      
+   stage: build
+   script:
+      - mkdir docker-images
+      - docker build -t $IAMAGE_FULL_NAME .
+      - docker save $IAMAGE_FULL_NAME > docker-images/app.tar
+
+test:terraform-make:
+   tags:
+      - build-image
+   stage: test
+   script:
+      - docker load -i docker-images/app.tar
+      - docker run --detach --name docker-image-test  ${IAMAGE_FULL_NAME}
+      - EXIT_CODE=$(echo $?)
+      - docker logs --details docker-image-test
+      - docker rm --force docker-image-test
+      - exit ${EXIT_CODE}
+
+push:terraform-make:
+   tags:
+      - build-image
+      
+   stage: push
+   script:
+      - apk add --update --no-cache jq curl ca-certificates
+      - mkdir -p /usr/local/share/ca-certificates
+      - curl http://root-ca-url/PrivateRootCA.crt > /usr/local/share/ca-certificates/PrivateRootCA.crt 
+      - update-ca-certificates
+      - VAULT_LOGIN=$(curl --request POST --data '{"role_id":"'${DEVOPS_ROLE_ID}'","secret_id":"'${DEVOPS_SECRET_ID}'"}' ${VAULT_ADDR}/v1/auth/approle/login)
+      - VAULT_TOKEN=$(echo ${VAULT_LOGIN} | jq -r '.auth.client_token')
+      - 'OAUTH_REQUEST=$(curl --header "X-Vault-Token: "${VAULT_TOKEN}"" ${VAULT_ADDR}/v1/gcp/token/docker-repo-push-pull-token)'
+      - OAUTH_TOKEN=$(echo ${OAUTH_REQUEST} | jq -r '.data.token')
+      - docker login -u '_token' -p ${OAUTH_TOKEN} https://$GCP_REPO_REGON
+      - docker load -i docker-images/app.tar
+      - docker push $IAMAGE_FULL_NAME
