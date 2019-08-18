@@ -19,3 +19,9 @@ Using
 
 https://github.com/morningconsult/docker-credential-vault-login
 
+
+Add poc bash script pull the gcp toiken cread from vault write it back to the vault 
+docker login.
+
+assuming vault cread help setup work local.
+
