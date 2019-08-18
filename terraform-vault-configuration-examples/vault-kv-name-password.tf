@@ -4,7 +4,7 @@ resource "vault_generic_secret" "secret_application_docker" {
 	path = "secret/application/docker"
 	data_json = <<EOT
 {
- 	"username": "testuser",
+ 	"username": "_token",
  	"password": "testpassword"
 }
 EOT
