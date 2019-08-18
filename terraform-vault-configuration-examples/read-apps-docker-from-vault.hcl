@@ -3,5 +3,5 @@
 
 path "secret/application/docker"
 {
-  capabilities = ["read", "list"]
+  capabilities = ["update", "read", "list"]
 }
